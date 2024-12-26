@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Background Removal</title>
+</head>
+<body>
+    <input type="file" id="upload" accept="image/*">
+    <canvas id="canvas"></canvas>
+    
+    <script>
+        const upload = document.getElementById('upload');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const formData = new FormData();
+            formData.append('image_file', file);
+
+            fetch('https://api.remove.bg/v1.0/removebg', {
+                method: 'POST',
+                headers: {
+                    'X-Api-Key': 'bwMMtjDcCPMuuFBNab7DrRjc'
+                },
+                body: formData
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = URL.createObjectURL(blob);
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>

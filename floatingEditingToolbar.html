@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Editor Toolbar</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .text-toolbar {
+            display: none; /* Initially hidden */
+            align-items: center;
+            background-color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+            gap: 10px;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: move;
+        }
+
+        .text-toolbar select,
+        .text-toolbar input[type="text"],
+        .text-toolbar input[type="color"] {
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+            font-size: 14px;
+            padding: 6px;
+            border-radius: 4px;
+            text-align: center;
+            color: #333;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .text-toolbar input[type="text"] {
+            width: 150px;
+        }
+
+        .text-toolbar button {
+            border: none;
+            background: none;
+            font-size: 18px;
+            color: #333;
+            cursor: pointer;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .text-toolbar button:hover {
+            transform: scale(1.1);
+            color: #007bff;
+        }
+
+        .text-color-picker {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .text-color-picker .icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .text-color-picker .icon:after {
+            content: '';
+            display: block;
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            width: 100%;
+            background-color: #000; /* Default color black */
+            border-radius: 2px;
+        }
+
+        .text-color-picker input[type="color"] {
+            opacity: 0;
+            position: absolute;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+        }
+
+        #editable-text {
+            position: absolute;
+            cursor: text;
+        }
+
+        #font-selector {
+            font-family: inherit;
+            width: 150px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+            font-size: 14px;
+            padding: 6px;
+            border-radius: 4px;
+            color: #333;
+            cursor: pointer;
+            max-height: 120px; /* Limits the dropdown height */
+            overflow-y: auto; /* Enables scrolling */
+        }
+
+
+        #font-selector option {
+            padding: 10px; /* Adjust padding if you want to make options more clickable */
+        }
+
+        #font-search {
+            width: 150px;
+            padding: 6px;
+            font-size: 14px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+        }
+
+        .font-option {
+            display: none;
+        }
+
+        .font-option.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="text-toolbar" id="text-toolbar">
+        <!-- Font Search and Selector -->
+        <select id="font-selector"  style="font-size: 16px;">
+            <!-- Options will be dynamically populated -->
+        </select>
+
+        <!-- Font Size Adjustments -->
+        <button id="decrease-font" title="Decrease Font Size"><i class="fas fa-minus"></i></button>
+        <input type="text" value="11" id="font-size" style="width: 50px; text-align: center; font-size: 16px; border: 1px solid #ddd; border-radius: 4px;">
+        <button id="increase-font" title="Increase Font Size"><i class="fas fa-plus"></i></button>
+
+        <!-- Font Style Buttons -->
+        <button id="bold-button" title="Bold"><i class="fas fa-bold"></i></button>
+        <button id="italic-button" title="Italic"><i class="fas fa-italic"></i></button>
+        <button id="underline-button" title="Underline"><i class="fas fa-underline"></i></button>
+
+        <!-- Text Alignment -->
+        <button id="align-left" title="Align Left"><i class="fas fa-align-left"></i></button>
+        <button id="align-center" title="Align Center"><i class="fas fa-align-center"></i></button>
+        <button id="align-right" title="Align Right"><i class="fas fa-align-right"></i></button>
+
+        <!-- Text Color Picker -->
+        <div class="text-color-picker" title="Change Text Color">
+            <span class="icon">🎨</span>
+            <input type="color" id="text-color-picker" value="#000000">
+        </div>
+
+        <!-- Undo and Redo Buttons -->
+        <button id="undo-button" title="Undo"><i class="fas fa-undo"></i></button>
+        <button id="redo-button" title="Redo"><i class="fas fa-redo"></i></button>
+    </div>
+
+    <div contenteditable="true" id="editable-text" style="margin-top: 20px; padding: 10px; border: 1px solid #ddd; width: 80%; background-color: #fff;">
+        Click on this text to apply the toolbar actions.
+    </div>
+
+    <script>
+        const toolbar = document.getElementById('text-toolbar');
+        const editableText = document.getElementById('editable-text');
+        const fontSelector = document.getElementById('font-selector');
+        const fontSearchInput = document.getElementById('font-search');
+
+        // List of fonts, sorted alphabetically
+        const fonts = [
+            'Arial', 'Arial Black', 'Arial Narrow', 'Asap', 'Bree Serif', 'Cabin', 'Cantarell', 'Cardo', 'Cedarville Cursive',
+            'Courier New', 'Droid Sans', 'Droid Serif', 'EB Garamond', 'Exo 2', 'Frank Ruhl Libre', 'Fira Sans', 'Lora',
+            'Merriweather', 'Montserrat', 'Open Sans', 'Poppins', 'Quicksand', 'Raleway', 'Roboto', 'Roboto Condensed', 
+            'Roboto Slab', 'Slabo 27px', 'Source Sans Pro', 'Tisa', 'Ubuntu', 'Varela Round', 'Vollkorn'
+        ];
+
+        // Dynamically populate font selector
+        fonts.forEach(font => {
+            const option = document.createElement('option');
+            option.value = font;
+            option.textContent = font;
+            option.style.fontFamily = font;
+            fontSelector.appendChild(option);
+
+            const link = document.createElement('link');
+            link.href = `https://fonts.googleapis.com/css2?family=${font.replace(/ /g, '+')}&display=swap`;
+            link.rel = 'stylesheet';
+            document.head.appendChild(link);
+        });
+
+        // Apply selected font to editable text
+        fontSelector.addEventListener('change', () => {
+            const selectedFont = fontSelector.value;
+            editableText.style.fontFamily = selectedFont;
+        });
+
+        // Show toolbar on text click
+        editableText.addEventListener('click', () => {
+            toolbar.style.display = 'flex';
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!editableText.contains(event.target) && !toolbar.contains(event.target)) {
+                toolbar.style.display = 'none';
+            }
+        });
+
+        // Function to filter fonts based on search input
+        function filterFonts() {
+            const searchQuery = fontSearchInput.value.toLowerCase();
+            const options = fontSelector.options;
+            for (let i = 0; i < options.length; i++) {
+                const option = options[i];
+                const fontName = option.textContent.toLowerCase();
+                if (fontName.includes(searchQuery)) {
+                    option.classList.add('visible');
+                } else {
+                    option.classList.remove('visible');
+                }
+            }
+        }
+
+        // Drag functionality for toolbar
+        let isDraggingToolbar = false;
+        let offsetX, offsetY;
+
+        toolbar.addEventListener('mousedown', (event) => {
+            isDraggingToolbar = true;
+            offsetX = event.clientX - toolbar.offsetLeft;
+            offsetY = event.clientY - toolbar.offsetTop;
+            document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (event) => {
+            if (isDraggingToolbar) {
+                toolbar.style.left = (event.clientX - offsetX) + 'px';
+                toolbar.style.top = (event.clientY - offsetY) + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDraggingToolbar = false;
+            document.body.style.userSelect = '';
+        });
+
+        // Font Size Increase
+        const increaseFontButton = document.getElementById('increase-font');
+        const decreaseFontButton = document.getElementById('decrease-font');
+        const fontSizeInput = document.getElementById('font-size');
+
+        increaseFontButton.addEventListener('click', () => {
+            let currentSize = parseInt(fontSizeInput.value, 10) || 15;
+            fontSizeInput.value = currentSize + 1;
+            editableText.style.fontSize = fontSizeInput.value + 'px';
+        });
+
+        decreaseFontButton.addEventListener('click', () => {
+            let currentSize = parseInt(fontSizeInput.value, 10) || 15;
+            fontSizeInput.value = Math.max(1, currentSize - 1);
+            editableText.style.fontSize = fontSizeInput.value + 'px';
+        });
+
+        // Text Color Picker Functionality
+        const colorPicker = document.getElementById('text-color-picker');
+
+        colorPicker.addEventListener('input', (event) => {
+            const selectedColor = event.target.value;
+            editableText.style.color = selectedColor;
+        });
+
+        // Bold Button Functionality
+        const boldButton = document.getElementById('bold-button');
+        boldButton.addEventListener('click', () => {
+            document.execCommand('bold');
+        });
+
+        // Italic Button Functionality
+        const italicButton = document.getElementById('italic-button');
+        italicButton.addEventListener('click', () => {
+            document.execCommand('italic');
+        });
+
+        // Underline Button Functionality
+        const underlineButton = document.getElementById('underline-button');
+        underlineButton.addEventListener('click', () => {
+            document.execCommand('underline');
+        });
+
+        // Alignment Buttons
+        const alignLeftButton = document.getElementById('align-left');
+        const alignCenterButton = document.getElementById('align-center');
+        const alignRightButton = document.getElementById('align-right');
+
+        alignLeftButton.addEventListener('click', () => {
+            document.execCommand('justifyLeft');
+        });
+
+        alignCenterButton.addEventListener('click', () => {
+            document.execCommand('justifyCenter');
+        });
+
+        alignRightButton.addEventListener('click', () => {
+            document.execCommand('justifyRight');
+        });
+
+        // Undo and Redo Buttons
+        const undoButton = document.getElementById('undo-button');
+        const redoButton = document.getElementById('redo-button');
+
+        undoButton.addEventListener('click', () => {
+            document.execCommand('undo');
+        });
+
+        redoButton.addEventListener('click', () => {
+            document.execCommand('redo');
+        });
+    </script>
+</body>
+</html>

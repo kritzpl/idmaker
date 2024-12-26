@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Image Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        .canvas-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
+        .draggable {
+            position: absolute;
+            cursor: move;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+        .controls button {
+            padding: 8px;
+            margin: 5px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="upload" accept="image/*">
+    <div class="canvas-container" id="canvas-container">
+        <img id="image" src="" alt="Image" class="draggable" style="max-width: 100%; display: none;">
+        <div id="text" class="draggable" style="top: 50px; left: 50px; font-size: 18px;">Editable Text</div>
+    </div>
+    <div class="controls">
+        <button id="cropBtn">Crop</button>
+        <button id="resetBtn">Reset</button>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script>
+        const upload = document.getElementById('upload');
+        const image = document.getElementById('image');
+        const text = document.getElementById('text');
+        let cropper;
+
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                image.src = event.target.result;
+                image.style.display = 'block';
+                if (cropper) {
+                    cropper.destroy();
+                }
+                cropper = new Cropper(image, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('cropBtn').addEventListener('click', () => {
+            const canvas = cropper.getCroppedCanvas();
+            image.src = canvas.toDataURL();
+            cropper.destroy();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if (cropper) {
+                cropper.reset();
+            }
+        });
+
+        // Drag and Drop functionality
+        document.querySelectorAll('.draggable').forEach(element => {
+            element.addEventListener('mousedown', dragMouseDown);
+        });
+
+        let currentElement = null;
+        let offsetX, offsetY;
+
+        function dragMouseDown(e) {
+            e.preventDefault();
+            currentElement = this;
+            offsetX = e.clientX - currentElement.offsetLeft;
+            offsetY = e.clientY - currentElement.offsetTop;
+
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+        }
+
+        function mouseMoveHandler(e) {
+            currentElement.style.left = `${e.clientX - offsetX}px`;
+            currentElement.style.top = `${e.clientY - offsetY}px`;
+        }
+
+        function mouseUpHandler() {
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            document.removeEventListener('mouseup', mouseUpHandler);
+        }
+    </script>
+</body>
+</html>

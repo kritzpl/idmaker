@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Resizer</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        .canvas-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            overflow: hidden;
+        }
+        .resizable {
+            position: absolute;
+            top: 100px;
+            left: 100px;
+            width: 150px;
+            height: 150px;
+            border: 2px dashed #000;
+            transform-origin: center;
+            transform: rotate(0deg); /* Default rotation */
+            display: none; /* Hidden initially */
+        }
+        .resizable img {
+            width: 100%;
+            height: 100%;
+        }
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #000;
+            cursor: pointer;
+        }
+        .resize-handle.nw { top: -5px; left: -5px; cursor: nw-resize; }
+        .resize-handle.ne { top: -5px; right: -5px; cursor: ne-resize; }
+        .resize-handle.sw { bottom: -5px; left: -5px; cursor: sw-resize; }
+        .resize-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
+        .rotate-handle {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            background-color: #000;
+            border-radius: 50%;
+            cursor: grab;
+        }
+        .rotation-indicator {
+            position: absolute;
+            top: -25px;
+            left: 60%;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="upload" accept="image/*">
+    <div class="canvas-container" id="canvas-container">
+        <div class="resizable" id="resizable">
+            <img id="image" src="" alt="Image">
+            <div class="resize-handle nw"></div>
+            <div class="resize-handle ne"></div>
+            <div class="resize-handle sw"></div>
+            <div class="resize-handle se"></div>
+            <div class="rotate-handle"></div>
+            <div class="rotation-indicator" id="rotation-indicator">0°</div>
+        </div>
+    </div>
+    <script>
+        const canvasContainer = document.getElementById('canvas-container');
+        const upload = document.getElementById('upload');
+        const resizable = document.getElementById('resizable');
+        const image = document.getElementById('image');
+        const rotateHandle = resizable.querySelector('.rotate-handle');
+        const rotationIndicator = document.getElementById('rotation-indicator');
+
+        let currentRotation = 0;
+
+        // Display default rotation in indicator
+        updateRotationIndicator(0);
+
+        // Upload and display the image
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                image.src = event.target.result;
+                resizable.style.display = 'block';  // Show the resizable container
+                resetRotation();  // Reset to 0 degrees after the image is loaded
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Trigger resize and rotation only after the image is clicked
+        resizable.addEventListener('click', () => {
+            resizable.style.cursor = 'move'; // Enable dragging
+            enableResizeAndRotate();  // Enable resizing and rotating
+        });
+
+        // Dragging functionality
+        let isDragging = false;
+        let dragStartX, dragStartY, startLeft, startTop;
+
+        resizable.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('resize-handle') || e.target.classList.contains('rotate-handle')) {
+                return;
+            }
+
+            isDragging = true;
+            const rect = resizable.getBoundingClientRect();
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            startLeft = rect.left - canvasContainer.getBoundingClientRect().left;
+            startTop = rect.top - canvasContainer.getBoundingClientRect().top;
+
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            e.preventDefault();
+        });
+
+        function drag(e) {
+            if (!isDragging) return;
+
+            const deltaX = e.clientX - dragStartX;
+            const deltaY = e.clientY - dragStartY;
+
+            const angle = (currentRotation * Math.PI) / 180;
+            const rotatedDeltaX = deltaX * Math.cos(angle) - deltaY * Math.sin(angle);
+            const rotatedDeltaY = deltaX * Math.sin(angle) + deltaY * Math.cos(angle);
+
+            const newLeft = Math.max(0, Math.min(canvasContainer.offsetWidth - resizable.offsetWidth, startLeft + rotatedDeltaX));
+            const newTop = Math.max(0, Math.min(canvasContainer.offsetHeight - resizable.offsetHeight, startTop + rotatedDeltaY));
+
+            resizable.style.left = `${newLeft}px`;
+            resizable.style.top = `${newTop}px`;
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+
+        // Rotation functionality
+        let isRotating = false, startAngle, centerX, centerY;
+
+        rotateHandle.addEventListener('mousedown', (e) => {
+            isRotating = true;
+            const rect = resizable.getBoundingClientRect();
+            centerX = rect.left + rect.width / 2;
+            centerY = rect.top + rect.height / 2;
+            startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) - (currentRotation * Math.PI) / 180;
+
+            document.addEventListener('mousemove', rotate);
+            document.addEventListener('mouseup', stopRotate);
+            e.preventDefault();
+        });
+
+        function rotate(e) {
+            if (!isRotating) return;
+
+            const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX);
+            currentRotation = ((currentAngle - startAngle) * 180) / Math.PI;
+
+            resizable.style.transform = `rotate(${currentRotation}deg)`;
+            updateRotationIndicator(currentRotation);
+        }
+
+        function stopRotate() {
+            isRotating = false;
+            document.removeEventListener('mousemove', rotate);
+            document.removeEventListener('mouseup', stopRotate);
+        }
+
+        // Resizing functionality
+        const handles = document.querySelectorAll('.resize-handle');
+        let isResizing = false, startX, startY, startWidth, startHeight;
+
+        handles.forEach((handle) => {
+            handle.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                const rect = resizable.getBoundingClientRect();
+                startWidth = rect.width;
+                startHeight = rect.height;
+
+                document.addEventListener('mousemove', resize);
+                document.addEventListener('mouseup', stopResize);
+
+                e.stopPropagation();
+            });
+        });
+
+        function resize(e) {
+            if (!isResizing) return;
+
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            const angle = (currentRotation * Math.PI) / 180;
+            const rotatedDeltaX = deltaX * Math.cos(angle) + deltaY * Math.sin(angle);
+            const rotatedDeltaY = deltaY * Math.cos(angle) - deltaX * Math.sin(angle);
+
+            const newWidth = Math.max(50, startWidth + rotatedDeltaX);
+            const newHeight = Math.max(50, startHeight + rotatedDeltaY);
+
+            resizable.style.width = `${newWidth}px`;
+            resizable.style.height = `${newHeight}px`;
+        }
+
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        // Update rotation indicator
+        function updateRotationIndicator(rotation) {
+            const normalizedRotation = Math.round(rotation % 360);
+            rotationIndicator.textContent = `${normalizedRotation}°`;
+        }
+
+        // Reset rotation to 0 degrees when a new image is uploaded
+        function resetRotation() {
+            currentRotation = 0;
+            resizable.style.transform = `rotate(${currentRotation}deg)`;
+            updateRotationIndicator(currentRotation);
+        }
+
+        // Enable resizing and rotating after the image is clicked
+        function enableResizeAndRotate() {
+            resizable.style.cursor = 'move'; // Enable dragging
+        }
+    </script>
+</body>
+</html>

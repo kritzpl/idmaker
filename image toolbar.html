@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Image Editor Toolbar</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            flex-direction: column;
+        } */
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar button {
+            border: none;
+            background: none;
+            font-size: 20px;
+            color: #333;
+            cursor: pointer;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .toolbar button:hover {
+            transform: scale(1.1);
+            color: #007bff;
+        }
+
+        .toolbar input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+   
+
+    <div class="toolbar">
+        <button id="cropBtn"><i class="fas fa-crop"></i></button>
+        <button id="flipBtn"><i class="fas fa-sync-alt"></i></button>
+        <button id="filterBtn"><i class="fas fa-filter"></i></button>
+        <button id="adjustBtn"><i class="fas fa-adjust"></i></button>
+        <button id="effectsBtn"><i class="fas fa-magic"></i></button>
+        <button id="transparencyBtn"><i class="fas fa-tint"></i></button>
+        <button id="positionBtn"><i class="fas fa-arrows-alt"></i></button>
+        <button id="animateBtn"><i class="fas fa-play-circle"></i></button>
+        <button id="linkBtn"><i class="fas fa-link"></i></button>
+        <button id="replaceBtn"><i class="fas fa-image"></i></button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+    <script>
+        const upload = document.getElementById('upload');
+        let cropper;
+
+        // Handle image upload
+        upload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const image = new Image();
+                image.src = event.target.result;
+                document.body.appendChild(image); // Display image on the page
+                // Reset any previous cropper instance
+                if (cropper) {
+                    cropper.destroy();
+                    cropper = null;
+                }
+                // Initialize cropper on new image
+                cropper = new Cropper(image, {
+                    aspectRatio: NaN, // Allow free resizing of both width and height
+                    viewMode: 1,
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Crop Button (Save cropped image on second click)
+        document.getElementById('cropBtn').addEventListener('click', () => {
+            if (!cropper) {
+                alert("Please upload an image first!");
+                return;
+            }
+            // Save the cropped image when cropper is already initialized
+            const canvas = cropper.getCroppedCanvas();
+            const croppedImage = new Image();
+            croppedImage.src = canvas.toDataURL();
+            document.body.appendChild(croppedImage); // Display cropped image
+            cropper.destroy(); // Destroy the cropper to reset it
+            cropper = null; // Reset the cropper instance
+        });
+
+        // Flip Button
+        document.getElementById('flipBtn').addEventListener('click', () => {
+            if (cropper) {
+                const image = cropper.image;
+                image.style.transform = (image.style.transform === 'scaleX(-1)') ? 'scaleX(1)' : 'scaleX(-1)';
+            } else {
+                alert("Please upload an image first!");
+            }
+        });
+
+        // Filter Button
+        document.getElementById('filterBtn').addEventListener('click', () => {
+            if (cropper) {
+                cropper.image.style.filter = 'grayscale(100%)';
+            } else {
+                alert("Please upload an image first!");
+            }
+        });
+
+        // Adjust Button
+        document.getElementById('adjustBtn').addEventListener('click', () => {
+            if (cropper) {
+                cropper.image.style.filter = 'brightness(1.2) contrast(1.2)';
+            } else {
+                alert("Please upload an image first!");
+            }
+        });
+
+        // Effects Button
+        document.getElementById('effectsBtn').addEventListener('click', () => {
+            alert('Effects functionality triggered!');
+        });
+
+        // Transparency Button
+        document.getElementById('transparencyBtn').addEventListener('click', () => {
+            if (cropper) {
+                cropper.image.style.opacity = 0.5;
+            } else {
+                alert("Please upload an image first!");
+            }
+        });
+
+        // Position Button
+        document.getElementById('positionBtn').addEventListener('click', () => {
+            alert('Position functionality triggered!');
+        });
+
+        // Animate Button
+        document.getElementById('animateBtn').addEventListener('click', () => {
+            alert('Animate functionality triggered!');
+        });
+
+        // Link Button
+        document.getElementById('linkBtn').addEventListener('click', () => {
+            alert('Link functionality triggered!');
+        });
+
+        // Replace Button
+        document.getElementById('replaceBtn').addEventListener('click', () => {
+            upload.click();
+        });
+    </script>
+</body>
+</html>
